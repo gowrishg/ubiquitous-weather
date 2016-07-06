@@ -122,8 +122,8 @@ public class MyWatchFace extends CanvasWatchFaceService {
         Paint mMaxTextPaint;
         Paint mLinePaint;
         boolean mAmbient;
-        String weatherTempHigh = "32";
-        String weatherTempLow = "21";
+        String weatherTempHigh;
+        String weatherTempLow;
         Bitmap weatherTempIcon;
         Time mTime;
         final BroadcastReceiver mTimeZoneReceiver = new BroadcastReceiver() {
@@ -180,7 +180,7 @@ public class MyWatchFace extends CanvasWatchFaceService {
             mMinTextPaint = new Paint();
             mMinTextPaint = createNormalPaint(resources.getColor(R.color.secondary_text));
 
-            weatherTempIcon = BitmapFactory.decodeResource(getResources(), R.drawable.art_clear);
+            //weatherTempIcon = BitmapFactory.decodeResource(getResources(), R.drawable.art_clear);
 
             mTime = new Time();
 
