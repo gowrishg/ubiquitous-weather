@@ -288,7 +288,7 @@ public class MyWatchFace extends CanvasWatchFaceService {
         public void onAmbientModeChanged(boolean inAmbientMode) {
             super.onAmbientModeChanged(inAmbientMode);
             if (mAmbient != inAmbientMode) {
-                mBackgroundPaint.setColor(inAmbientMode ? getResources().getColor(R.color.background) : getResources().getColor(R.color.background_ambient));
+                mBackgroundPaint.setColor(inAmbientMode ? getResources().getColor(R.color.background_ambient) : getResources().getColor(R.color.background));
                 mAmbient = inAmbientMode;
                 if (mLowBitAmbient) {
                     mHourPaint.setAntiAlias(!inAmbientMode);
