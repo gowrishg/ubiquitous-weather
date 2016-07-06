@@ -548,6 +548,7 @@ public class SunshineSyncAdapter extends AbstractThreadedSyncAdapter {
                 .build();
         mGoogleApiClient.connect();
 
+        largeIcon = Bitmap.createScaledBitmap(largeIcon, 52, 52, true);
         //! reduce the size of the image to 100 bytes
         ByteArrayOutputStream byteStream = new ByteArrayOutputStream();
         largeIcon.compress(Bitmap.CompressFormat.PNG, 100, byteStream);
