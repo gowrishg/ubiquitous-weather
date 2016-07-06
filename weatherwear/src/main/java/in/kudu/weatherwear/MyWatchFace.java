@@ -36,7 +36,10 @@ import android.view.SurfaceHolder;
 import android.view.WindowInsets;
 
 import java.lang.ref.WeakReference;
+import java.text.SimpleDateFormat;
 import java.util.Calendar;
+import java.util.Date;
+import java.util.Locale;
 import java.util.TimeZone;
 import java.util.concurrent.TimeUnit;
 
@@ -49,6 +52,8 @@ public class MyWatchFace extends CanvasWatchFaceService {
             Typeface.create(Typeface.SANS_SERIF, Typeface.NORMAL);
     private static final Typeface BOLD_TYPEFACE =
             Typeface.create(Typeface.SANS_SERIF, Typeface.BOLD);
+    float mLineSpace;
+    SimpleDateFormat mDateFormat = new SimpleDateFormat("ccc, MMM d yyyy", Locale.getDefault());
 
     /**
      * Update rate in milliseconds for interactive mode. We update once a second since seconds are
@@ -130,13 +135,13 @@ public class MyWatchFace extends CanvasWatchFaceService {
             mBackgroundPaint.setColor(resources.getColor(R.color.background));
 
             mHourPaint = new Paint();
-            mHourPaint = createHrPaint(resources.getColor(R.color.primary_text));
+            mHourPaint = createBoldPaint(resources.getColor(R.color.primary_text));
 
             mMinPaint = new Paint();
-            mMinPaint = createMinPaint(resources.getColor(R.color.primary_text));
+            mMinPaint = createNormalPaint(resources.getColor(R.color.primary_text));
 
             mDateTimeTextPaint = new Paint();
-            mDateTimeTextPaint = createHrPaint(resources.getColor(R.color.secondary_text));
+            mDateTimeTextPaint = createNormalPaint(resources.getColor(R.color.secondary_text));
 
             mTime = new Time();
         }
@@ -147,7 +152,7 @@ public class MyWatchFace extends CanvasWatchFaceService {
             super.onDestroy();
         }
 
-        private Paint createHrPaint(int textColor) {
+        private Paint createBoldPaint(int textColor) {
             Paint paint = new Paint();
             paint.setColor(textColor);
             paint.setTypeface(BOLD_TYPEFACE);
@@ -155,7 +160,7 @@ public class MyWatchFace extends CanvasWatchFaceService {
             return paint;
         }
 
-        private Paint createMinPaint(int textColor) {
+        private Paint createNormalPaint(int textColor) {
             Paint paint = new Paint();
             paint.setColor(textColor);
             paint.setTypeface(NORMAL_TYPEFACE);
@@ -209,9 +214,14 @@ public class MyWatchFace extends CanvasWatchFaceService {
             mXOffset = resources.getDimension(isRound
                     ? R.dimen.digital_x_offset_round : R.dimen.digital_x_offset);
             float textSize = resources.getDimension(R.dimen.digital_text_size);
+            float dateTextSize = resources.getDimension(R.dimen.date_text_size);
+            float tempTextSize = resources.getDimension(R.dimen.temp_text_size);
+            mLineSpace = resources.getDimension(R.dimen.text_linespace);
+
 
             mHourPaint.setTextSize(textSize);
             mMinPaint.setTextSize(textSize);
+            mDateTimeTextPaint.setTextSize(dateTextSize);
         }
 
         @Override
@@ -255,18 +265,29 @@ public class MyWatchFace extends CanvasWatchFaceService {
             mTime.setToNow();
 
             int centerX = bounds.width() / 2;
-            int centerY = bounds.height() / 2;
             long now = System.currentTimeMillis();
             Calendar calendar = Calendar.getInstance();
             calendar.setTimeInMillis(now);
+            Date date = new Date();
 
 
             String hrText = String.format("%d:", mTime.hour);
             String minText = String.format("%02d", mTime.minute);
-            canvas.drawText(hrText, mXOffset, mYOffset, mHourPaint);
             Rect textBounds = new Rect();
             mHourPaint.getTextBounds(hrText, 0, hrText.length(), textBounds);
-            canvas.drawText(minText, mXOffset + textBounds.right, mYOffset + textBounds.bottom, mMinPaint);
+            float left = centerX - textBounds.width();
+            left = left < 0 ? 0 : left;
+            float totalBottomY = mYOffset + textBounds.bottom;
+            canvas.drawText(hrText, left, totalBottomY, mHourPaint);
+            canvas.drawText(minText, left + textBounds.right, totalBottomY, mMinPaint);
+
+            String dateText = mDateFormat.format(date).toUpperCase();
+            mDateTimeTextPaint.getTextBounds(dateText, 0, dateText.length(), textBounds);
+            left = bounds.width() - textBounds.width();
+            left = left < 0 ? 0 : left / 2;
+            totalBottomY = totalBottomY + textBounds.height() + mLineSpace;
+            canvas.drawText(dateText, left, totalBottomY, mDateTimeTextPaint);
+
         }
 
         /**
