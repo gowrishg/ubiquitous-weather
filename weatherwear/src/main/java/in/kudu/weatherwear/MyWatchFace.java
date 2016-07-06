@@ -28,17 +28,29 @@ import android.graphics.Color;
 import android.graphics.Paint;
 import android.graphics.Rect;
 import android.graphics.Typeface;
-import android.graphics.drawable.BitmapDrawable;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.Message;
+import android.support.annotation.NonNull;
+import android.support.annotation.Nullable;
 import android.support.wearable.watchface.CanvasWatchFaceService;
 import android.support.wearable.watchface.WatchFaceStyle;
 import android.text.TextUtils;
 import android.text.format.Time;
+import android.util.Log;
 import android.view.SurfaceHolder;
 import android.view.WindowInsets;
 
+import com.google.android.gms.common.ConnectionResult;
+import com.google.android.gms.common.api.GoogleApiClient;
+import com.google.android.gms.wearable.Asset;
+import com.google.android.gms.wearable.DataApi;
+import com.google.android.gms.wearable.DataEvent;
+import com.google.android.gms.wearable.DataEventBuffer;
+import com.google.android.gms.wearable.DataMapItem;
+import com.google.android.gms.wearable.Wearable;
+
+import java.io.InputStream;
 import java.lang.ref.WeakReference;
 import java.text.SimpleDateFormat;
 import java.util.Calendar;
@@ -56,6 +68,7 @@ public class MyWatchFace extends CanvasWatchFaceService {
             Typeface.create(Typeface.SANS_SERIF, Typeface.NORMAL);
     private static final Typeface BOLD_TYPEFACE =
             Typeface.create(Typeface.SANS_SERIF, Typeface.BOLD);
+    private static final String TAG = MyWatchFace.class.getSimpleName();
     float mLineSpace;
     float mWordSpace;
     SimpleDateFormat mDateFormat = new SimpleDateFormat("ccc, MMM d yyyy", Locale.getDefault());
@@ -96,7 +109,9 @@ public class MyWatchFace extends CanvasWatchFaceService {
         }
     }
 
-    private class Engine extends CanvasWatchFaceService.Engine {
+
+    private class Engine extends CanvasWatchFaceService.Engine implements GoogleApiClient.ConnectionCallbacks, GoogleApiClient.OnConnectionFailedListener {
+        GoogleApiClient.Builder googleApiClient = null;
         final Handler mUpdateTimeHandler = new EngineHandler(this);
         boolean mRegisteredTimeZoneReceiver = false;
         Paint mBackgroundPaint;
@@ -168,6 +183,12 @@ public class MyWatchFace extends CanvasWatchFaceService {
             weatherTempIcon = BitmapFactory.decodeResource(getResources(),R.drawable.art_clear);
 
             mTime = new Time();
+
+            googleApiClient = new GoogleApiClient.Builder(getApplicationContext())
+                    .addApi(Wearable.API)
+                    .addConnectionCallbacks(this)
+                    .addOnConnectionFailedListener(this);
+            googleApiClient.build().connect();
         }
 
         @Override
@@ -377,5 +398,77 @@ public class MyWatchFace extends CanvasWatchFaceService {
                 mUpdateTimeHandler.sendEmptyMessageDelayed(MSG_UPDATE_TIME, delayMs);
             }
         }
+
+        @Override
+        public void onConnected(@Nullable Bundle bundle) {
+            Log.e(TAG, "onConnected(): Successfully connected to Google API client");
+            Wearable.DataApi.addListener(googleApiClient, dataListener);
+        }
+
+        @Override
+        public void onConnectionSuspended(int i) {
+            Log.e(TAG, "onConnectionSuspended(i): i=" + i);
+        }
+
+        @Override
+        public void onConnectionFailed(@NonNull ConnectionResult connectionResult) {
+            Log.e(TAG, "onConnectionFailed(connectionResult): connectionResult=" + connectionResult);
+        }
+
+
+        private static final String WEATHER_PATH = "/weather";
+        private static final String WEATHER_HIGH_TEMP_KEY = "weather_high_temp_key";
+        private static final String WEATHER_LOW_TEMP_KEY = "weather_low_temp_key";
+        private static final String WEATHER_ICON_KEY = "weather_icon_key";
+        DataApi.DataListener dataListener = new DataApi.DataListener() {
+            @Override
+            public void onDataChanged(DataEventBuffer dataEvents) {
+                Log.e(TAG, "onDataChanged(): " + dataEvents);
+
+                for (DataEvent event : dataEvents) {
+                    if (event.getType() == DataEvent.TYPE_CHANGED) {
+                        String path = event.getDataItem().getUri().getPath();
+                        if (WEATHER_PATH.equals(path)) {
+                            Log.e(TAG, "Data Changed for " + WEATHER_PATH);
+                            try {
+                                DataMapItem dataMapItem = DataMapItem.fromDataItem(event.getDataItem());
+                                weatherTempHigh = dataMapItem.getDataMap().getString(WEATHER_HIGH_TEMP_KEY);
+                                weatherTempLow = dataMapItem.getDataMap().getString(WEATHER_LOW_TEMP_KEY);
+                                Asset photo = dataMapItem.getDataMap().getAsset(WEATHER_ICON_KEY);
+                                weatherTempIcon = loadBitmapFromAsset(googleApiClient, photo);
+                            } catch (Exception e) {
+                                Log.e(TAG, "Exception   ", e);
+                                weatherTempIcon = null;
+                            }
+
+                        } else {
+
+                            Log.e(TAG, "Unrecognized path:  \"" + path + "\"  \"" + WEATHER_PATH + "\"");
+                        }
+
+                    } else {
+                        Log.e(TAG, "Unknown data event type   " + event.getType());
+                    }
+                }
+            }
+
+            /**
+             * Get image from the asset
+             * @param apiClient
+             * @param asset
+             * @return
+             */
+            private Bitmap loadBitmapFromAsset(GoogleApiClient apiClient, Asset asset) {
+                if (asset == null) {
+                    throw new IllegalArgumentException("Asset must be non-null");
+                }
+                InputStream assetInputStream = Wearable.DataApi.getFdForAsset(apiClient, asset).await().getInputStream();
+                if (assetInputStream == null) {
+                    Log.w(TAG, "Requested an unknown Asset.");
+                    return null;
+                }
+                return BitmapFactory.decodeStream(assetInputStream);
+            }
+        };
     }
 }
