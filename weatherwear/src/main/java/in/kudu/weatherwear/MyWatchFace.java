@@ -21,16 +21,20 @@ import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
 import android.content.res.Resources;
+import android.graphics.Bitmap;
+import android.graphics.BitmapFactory;
 import android.graphics.Canvas;
 import android.graphics.Color;
 import android.graphics.Paint;
 import android.graphics.Rect;
 import android.graphics.Typeface;
+import android.graphics.drawable.BitmapDrawable;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.Message;
 import android.support.wearable.watchface.CanvasWatchFaceService;
 import android.support.wearable.watchface.WatchFaceStyle;
+import android.text.TextUtils;
 import android.text.format.Time;
 import android.view.SurfaceHolder;
 import android.view.WindowInsets;
@@ -53,6 +57,7 @@ public class MyWatchFace extends CanvasWatchFaceService {
     private static final Typeface BOLD_TYPEFACE =
             Typeface.create(Typeface.SANS_SERIF, Typeface.BOLD);
     float mLineSpace;
+    float mWordSpace;
     SimpleDateFormat mDateFormat = new SimpleDateFormat("ccc, MMM d yyyy", Locale.getDefault());
 
     /**
@@ -97,9 +102,14 @@ public class MyWatchFace extends CanvasWatchFaceService {
         Paint mBackgroundPaint;
         Paint mHourPaint;
         Paint mMinPaint;
-        Paint mDateTimeTextPaint;
+        Paint mInformationLightTextPaint;
+        Paint mMinTextPaint;
+        Paint mMaxTextPaint;
         Paint mLinePaint;
         boolean mAmbient;
+        String weatherTempHigh = "32";
+        String weatherTempLow = "21";
+        Bitmap weatherTempIcon;
         Time mTime;
         final BroadcastReceiver mTimeZoneReceiver = new BroadcastReceiver() {
             @Override
@@ -141,13 +151,21 @@ public class MyWatchFace extends CanvasWatchFaceService {
             mMinPaint = new Paint();
             mMinPaint = createNormalPaint(resources.getColor(R.color.primary_text));
 
-            mDateTimeTextPaint = new Paint();
-            mDateTimeTextPaint = createNormalPaint(resources.getColor(R.color.secondary_text));
+            mInformationLightTextPaint = new Paint();
+            mInformationLightTextPaint = createNormalPaint(resources.getColor(R.color.secondary_text));
 
             mLinePaint = new Paint();
             mLinePaint.setColor(resources.getColor(R.color.secondary_text));
             mLinePaint.setStrokeWidth(0.5f);
             mLinePaint.setAntiAlias(true);
+
+            mMaxTextPaint = new Paint();
+            mMaxTextPaint = createNormalPaint(resources.getColor(R.color.primary_text));
+
+            mMinTextPaint = new Paint();
+            mMinTextPaint = createNormalPaint(resources.getColor(R.color.secondary_text));
+
+            weatherTempIcon = BitmapFactory.decodeResource(getResources(),R.drawable.art_clear);
 
             mTime = new Time();
         }
@@ -223,11 +241,14 @@ public class MyWatchFace extends CanvasWatchFaceService {
             float dateTextSize = resources.getDimension(R.dimen.date_text_size);
             float tempTextSize = resources.getDimension(R.dimen.temp_text_size);
             mLineSpace = resources.getDimension(R.dimen.text_linespace);
+            mWordSpace = resources.getDimension(R.dimen.text_wordspace);
 
 
             mHourPaint.setTextSize(textSize);
             mMinPaint.setTextSize(textSize);
-            mDateTimeTextPaint.setTextSize(dateTextSize);
+            mInformationLightTextPaint.setTextSize(dateTextSize);
+            mMinTextPaint.setTextSize(tempTextSize);
+            mMaxTextPaint.setTextSize(tempTextSize);
         }
 
         @Override
@@ -277,7 +298,7 @@ public class MyWatchFace extends CanvasWatchFaceService {
             Date date = new Date();
 
 
-            String hrText = String.format("%d:", mTime.hour);
+            String hrText = String.format("%02d:", mTime.hour);
             String minText = String.format("%02d", mTime.minute);
             Rect textBounds = new Rect();
             mHourPaint.getTextBounds(hrText, 0, hrText.length(), textBounds);
@@ -288,14 +309,40 @@ public class MyWatchFace extends CanvasWatchFaceService {
             canvas.drawText(minText, left + textBounds.right, totalBottomY, mMinPaint);
 
             String dateText = mDateFormat.format(date).toUpperCase();
-            mDateTimeTextPaint.getTextBounds(dateText, 0, dateText.length(), textBounds);
+            mInformationLightTextPaint.getTextBounds(dateText, 0, dateText.length(), textBounds);
             left = bounds.width() - textBounds.width();
             left = left < 0 ? 0 : left / 2;
             totalBottomY = totalBottomY + textBounds.height() + mLineSpace;
-            canvas.drawText(dateText, left, totalBottomY, mDateTimeTextPaint);
+            canvas.drawText(dateText, left, totalBottomY, mInformationLightTextPaint);
 
-            totalBottomY = totalBottomY + mLineSpace;
-            canvas.drawLine(centerX - 20, totalBottomY - 1, centerX + 20, totalBottomY + 1, mLinePaint);
+
+            if (!mAmbient) {
+                totalBottomY = totalBottomY + 2 * mLineSpace;
+                canvas.drawLine(centerX - 20, totalBottomY - 1, centerX + 20, totalBottomY + 1, mLinePaint);
+                if (TextUtils.isEmpty(weatherTempHigh) || TextUtils.isEmpty(weatherTempLow)) {
+                    String naText= getString(R.string.not_available);
+                    mInformationLightTextPaint.getTextBounds(naText, 0, naText.length(), textBounds);
+                    left = bounds.width() - textBounds.width();
+                    left = left < 0 ? 0 : left / 2;
+                    totalBottomY = totalBottomY + 2 * mLineSpace + textBounds.height();
+                    canvas.drawText(naText, left, totalBottomY, mInformationLightTextPaint);
+                } else {
+                    String text = weatherTempHigh;
+                    mMaxTextPaint.getTextBounds(text, 0, text.length(), textBounds);
+                    totalBottomY = totalBottomY + 2 * mLineSpace + textBounds.height();
+                    canvas.drawText(text, centerX - textBounds.width() / 2, totalBottomY, mMaxTextPaint);
+
+                    text = weatherTempLow;
+                    canvas.drawText(text, centerX + textBounds.width() / 2 + mWordSpace, totalBottomY, mMinTextPaint);
+
+                    if (weatherTempIcon != null) {
+                        // draw weather icon
+                        canvas.drawBitmap(weatherTempIcon,
+                                centerX - textBounds.width() / 2 - mWordSpace - weatherTempIcon.getWidth(),
+                                totalBottomY - weatherTempIcon.getHeight() / 2 - textBounds.height() / 2, null);
+                    }
+                }
+            }
 
         }
 
