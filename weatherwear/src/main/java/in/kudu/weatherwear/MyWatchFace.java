@@ -116,7 +116,7 @@ public class MyWatchFace extends CanvasWatchFaceService {
         boolean mRegisteredTimeZoneReceiver = false;
         Paint mBackgroundPaint;
         Paint mHourPaint;
-        Paint mMinPaint;
+        Paint mMinutesPaint;
         Paint mInformationLightTextPaint;
         Paint mMinTextPaint;
         Paint mMaxTextPaint;
@@ -152,7 +152,7 @@ public class MyWatchFace extends CanvasWatchFaceService {
                     .setCardPeekMode(WatchFaceStyle.PEEK_MODE_VARIABLE)
                     .setBackgroundVisibility(WatchFaceStyle.BACKGROUND_VISIBILITY_INTERRUPTIVE)
                     .setShowSystemUiTime(false)
-                    .setAcceptsTapEvents(true)
+                    .setAcceptsTapEvents(false)
                     .build());
             Resources resources = MyWatchFace.this.getResources();
             mYOffset = resources.getDimension(R.dimen.digital_y_offset);
@@ -163,8 +163,8 @@ public class MyWatchFace extends CanvasWatchFaceService {
             mHourPaint = new Paint();
             mHourPaint = createBoldPaint(resources.getColor(R.color.primary_text));
 
-            mMinPaint = new Paint();
-            mMinPaint = createNormalPaint(resources.getColor(R.color.primary_text));
+            mMinutesPaint = new Paint();
+            mMinutesPaint = createNormalPaint(resources.getColor(R.color.primary_text));
 
             mInformationLightTextPaint = new Paint();
             mInformationLightTextPaint = createNormalPaint(resources.getColor(R.color.secondary_text));
@@ -180,7 +180,7 @@ public class MyWatchFace extends CanvasWatchFaceService {
             mMinTextPaint = new Paint();
             mMinTextPaint = createNormalPaint(resources.getColor(R.color.secondary_text));
 
-            weatherTempIcon = BitmapFactory.decodeResource(getResources(),R.drawable.art_clear);
+            weatherTempIcon = BitmapFactory.decodeResource(getResources(), R.drawable.art_clear);
 
             mTime = new Time();
 
@@ -266,7 +266,7 @@ public class MyWatchFace extends CanvasWatchFaceService {
 
 
             mHourPaint.setTextSize(textSize);
-            mMinPaint.setTextSize(textSize);
+            mMinutesPaint.setTextSize(textSize);
             mInformationLightTextPaint.setTextSize(dateTextSize);
             mMinTextPaint.setTextSize(tempTextSize);
             mMaxTextPaint.setTextSize(tempTextSize);
@@ -288,9 +288,16 @@ public class MyWatchFace extends CanvasWatchFaceService {
         public void onAmbientModeChanged(boolean inAmbientMode) {
             super.onAmbientModeChanged(inAmbientMode);
             if (mAmbient != inAmbientMode) {
+                mBackgroundPaint.setColor(inAmbientMode ? getResources().getColor(R.color.background) : getResources().getColor(R.color.background_ambient));
                 mAmbient = inAmbientMode;
                 if (mLowBitAmbient) {
                     mHourPaint.setAntiAlias(!inAmbientMode);
+                    mHourPaint.setAntiAlias(!inAmbientMode);
+                    mMinutesPaint.setAntiAlias(!inAmbientMode);
+                    mInformationLightTextPaint.setAntiAlias(!inAmbientMode);
+                    mLinePaint.setAntiAlias(!inAmbientMode);
+                    mMinTextPaint.setAntiAlias(!inAmbientMode);
+                    mMaxTextPaint.setAntiAlias(!inAmbientMode);
                 }
                 invalidate();
             }
@@ -327,7 +334,7 @@ public class MyWatchFace extends CanvasWatchFaceService {
             left = left < 0 ? 0 : left;
             float totalBottomY = mYOffset + textBounds.bottom;
             canvas.drawText(hrText, left, totalBottomY, mHourPaint);
-            canvas.drawText(minText, left + textBounds.right, totalBottomY, mMinPaint);
+            canvas.drawText(minText, left + textBounds.right, totalBottomY, mMinutesPaint);
 
             String dateText = mDateFormat.format(date).toUpperCase();
             mInformationLightTextPaint.getTextBounds(dateText, 0, dateText.length(), textBounds);
@@ -341,7 +348,7 @@ public class MyWatchFace extends CanvasWatchFaceService {
                 totalBottomY = totalBottomY + 2 * mLineSpace;
                 canvas.drawLine(centerX - 20, totalBottomY - 1, centerX + 20, totalBottomY + 1, mLinePaint);
                 if (TextUtils.isEmpty(weatherTempHigh) || TextUtils.isEmpty(weatherTempLow)) {
-                    String naText= getString(R.string.not_available);
+                    String naText = getString(R.string.not_available);
                     mInformationLightTextPaint.getTextBounds(naText, 0, naText.length(), textBounds);
                     left = bounds.width() - textBounds.width();
                     left = left < 0 ? 0 : left / 2;

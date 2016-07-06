@@ -3,5 +3,5 @@
     <color name="background">#2aa9f1</color>
     <color name="primary_text">#ffffff</color>
     <color name="secondary_text">#e7e7e7</color>
-    <color name="ambient">#000</color>
+    <color name="background_ambient">#000</color>
 </resources>
