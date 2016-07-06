@@ -98,6 +98,7 @@ public class MyWatchFace extends CanvasWatchFaceService {
         Paint mHourPaint;
         Paint mMinPaint;
         Paint mDateTimeTextPaint;
+        Paint mLinePaint;
         boolean mAmbient;
         Time mTime;
         final BroadcastReceiver mTimeZoneReceiver = new BroadcastReceiver() {
@@ -142,6 +143,11 @@ public class MyWatchFace extends CanvasWatchFaceService {
 
             mDateTimeTextPaint = new Paint();
             mDateTimeTextPaint = createNormalPaint(resources.getColor(R.color.secondary_text));
+
+            mLinePaint = new Paint();
+            mLinePaint.setColor(resources.getColor(R.color.secondary_text));
+            mLinePaint.setStrokeWidth(0.5f);
+            mLinePaint.setAntiAlias(true);
 
             mTime = new Time();
         }
@@ -287,6 +293,9 @@ public class MyWatchFace extends CanvasWatchFaceService {
             left = left < 0 ? 0 : left / 2;
             totalBottomY = totalBottomY + textBounds.height() + mLineSpace;
             canvas.drawText(dateText, left, totalBottomY, mDateTimeTextPaint);
+
+            totalBottomY = totalBottomY + mLineSpace;
+            canvas.drawLine(centerX - 20, totalBottomY - 1, centerX + 20, totalBottomY + 1, mLinePaint);
 
         }
 
