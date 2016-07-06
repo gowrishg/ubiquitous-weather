@@ -111,7 +111,7 @@ public class MyWatchFace extends CanvasWatchFaceService {
 
 
     private class Engine extends CanvasWatchFaceService.Engine implements GoogleApiClient.ConnectionCallbacks, GoogleApiClient.OnConnectionFailedListener {
-        GoogleApiClient.Builder googleApiClient = null;
+        GoogleApiClient googleApiClient = null;
         final Handler mUpdateTimeHandler = new EngineHandler(this);
         boolean mRegisteredTimeZoneReceiver = false;
         Paint mBackgroundPaint;
@@ -187,8 +187,8 @@ public class MyWatchFace extends CanvasWatchFaceService {
             googleApiClient = new GoogleApiClient.Builder(getApplicationContext())
                     .addApi(Wearable.API)
                     .addConnectionCallbacks(this)
-                    .addOnConnectionFailedListener(this);
-            googleApiClient.build().connect();
+                    .addOnConnectionFailedListener(this).build();
+            googleApiClient.connect();
         }
 
         @Override
